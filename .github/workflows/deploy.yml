@@ -1,0 +1,77 @@
+name: Deploy Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Application to deploy (directory name from apps/)'
+        required: true
+        type: string
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - deploy
+          - destroy
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Validate application directory
+      env:
+        APP_DIR: ${{ github.event.inputs.app_name }}
+      run: |
+        if [ ! -d "apps/$APP_DIR" ]; then
+          echo "Error: Application directory 'apps/$APP_DIR' does not exist"
+          exit 1
+        fi
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    
+    - name: Build and push Docker image
+      if: github.event.inputs.action == 'deploy'
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ github.event.inputs.app_name }}
+        GITHUB_SHA: ${{ github.sha }}
+        APP_DIR: ${{ github.event.inputs.app_name }}
+      run: |
+        docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" -f "apps/$APP_DIR/docker/Dockerfile" "apps/$APP_DIR"
+        docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+        docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+    
+    - name: Setup OpenTofu
+      uses: opentofu/setup-opentofu@v1
+      with:
+        tofu_version: 1.6.0
+    
+    - name: Deploy/Destroy infrastructure
+      env:
+        APP_DIR: ${{ github.event.inputs.app_name }}
+        ACTION: ${{ github.event.inputs.action }}
+      working-directory: apps/${{ github.event.inputs.app_name }}/infrastructure
+      run: |
+        tofu init
+        if [ "$ACTION" = "deploy" ]; then
+          tofu apply -auto-approve
+        else
+          tofu destroy -auto-approve
+        fi
