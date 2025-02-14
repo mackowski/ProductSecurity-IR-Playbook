@@ -74,7 +74,12 @@ jobs:
       run: |
         tofu init
         if [ "$ACTION" = "deploy" ]; then
-          # Try to destroy existing resources first
+          # Try to import existing App Runner service if it exists
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${APP_DIR}-service'].ServiceArn" --output text) || true
+          if [ ! -z "$SERVICE_ARN" ]; then
+            tofu import aws_apprunner_service.example "$SERVICE_ARN" || true
+          fi
+          # Try to destroy existing resources
           tofu destroy -auto-approve || true
           # Then apply new configuration
           tofu apply -auto-approve
