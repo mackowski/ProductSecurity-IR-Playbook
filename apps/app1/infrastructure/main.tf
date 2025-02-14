@@ -15,10 +15,6 @@ locals {
   app_name = "app1"  # Change this for each app
 }
 
-resource "aws_ecr_repository" "app" {
-  name = local.app_name
-}
-
 resource "aws_iam_role" "app_runner" {
   name = "${local.app_name}-app-runner-role"
 
