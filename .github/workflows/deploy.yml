@@ -74,6 +74,9 @@ jobs:
       run: |
         tofu init
         if [ "$ACTION" = "deploy" ]; then
+          # Try to destroy existing resources first
+          tofu destroy -auto-approve || true
+          # Then apply new configuration
           tofu apply -auto-approve
         else
           tofu destroy -auto-approve
