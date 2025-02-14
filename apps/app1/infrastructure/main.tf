@@ -38,7 +38,10 @@ resource "aws_iam_role" "app_runner" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "build.apprunner.amazonaws.com"
+          Service = [
+            "build.apprunner.amazonaws.com",
+            "tasks.apprunner.amazonaws.com"
+          ]
         }
       }
     ]
@@ -48,6 +51,11 @@ resource "aws_iam_role" "app_runner" {
 resource "aws_iam_role_policy_attachment" "app_runner_ecr_policy" {
   role       = aws_iam_role.app_runner.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "app_runner_service_policy" {
+  role       = aws_iam_role.app_runner.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForService"
 }
 
 resource "aws_apprunner_service" "example" {
