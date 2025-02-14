@@ -11,8 +11,11 @@ provider "aws" {
   region = "us-west-2"
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
   app_name = "app1"  # Change this for each app
+  ecr_repository_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-west-2.amazonaws.com/${local.app_name}"
 }
 
 resource "aws_iam_role" "app_runner" {
@@ -40,7 +43,7 @@ resource "aws_apprunner_service" "example" {
       image_configuration {
         port = "8080"
       }
-      image_identifier      = "${aws_ecr_repository.app.repository_url}:latest"
+      image_identifier      = "${local.ecr_repository_url}:latest"
       image_repository_type = "ECR"
     }
     authentication_configuration {
