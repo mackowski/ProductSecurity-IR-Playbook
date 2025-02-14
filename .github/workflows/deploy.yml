@@ -53,6 +53,9 @@ jobs:
         GITHUB_SHA: ${{ github.sha }}
         APP_DIR: ${{ github.event.inputs.app_name }}
       run: |
+        # Create ECR repository if it doesn't exist
+        aws ecr describe-repositories --repository-names "${ECR_REPOSITORY}" || aws ecr create-repository --repository-name "${ECR_REPOSITORY}"
+        
         docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" -f "apps/$APP_DIR/docker/Dockerfile" "apps/$APP_DIR"
         docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
         docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
