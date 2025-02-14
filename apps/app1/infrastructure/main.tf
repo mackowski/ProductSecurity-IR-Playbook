@@ -54,11 +54,6 @@ resource "aws_iam_role_policy_attachment" "app_runner_ecr_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
 }
 
-resource "aws_iam_role_policy_attachment" "app_runner_service_policy" {
-  role       = aws_iam_role.app_runner.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForService"
-}
-
 resource "aws_apprunner_service" "example" {
   service_name = "${local.app_name}-service"
 
